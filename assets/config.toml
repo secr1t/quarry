@@ -1,0 +1,36 @@
+browser = "qutebrowser"
+
+[search_engines.google]
+shortcut = "g"
+url = "https://www.google.com/search?q={query}"
+
+[search_engines.youtube]
+shortcut = "y"
+url = "https://www.youtube.com/results?search_query={query}"
+
+[search_engines.reddit]
+shortcut = "r"
+url = "https://www.reddit.com/search/?q={query}"
+
+[search_engines.bing]
+shortcut = "b"
+url = "https://www.bing.com/search?q={query}"
+
+[search_engines.duckduckgo]
+shortcut = "d"
+url = "https://duckduckgo.com/?q={query}"
+
+[search_engines.github]
+shortcut = "gh"
+url = "https://github.com/search?q={query}"
+
+[search_engines.wikipedia]
+shortcut = "w"
+url = "https://en.wikipedia.org/w/index.php?search={query}"
+
+[favorites]
+github = "https://github.com"
+arch = "https://wiki.archlinux.org"
+rust = "https://www.rust-lang.org"
+crates = "https://crates.io"
+youtube = "https://www.youtube.com"

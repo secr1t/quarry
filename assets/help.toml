@@ -1,0 +1,38 @@
+common = "GG EZ"
+description = "Quarry — a simple CLI tool for searching the web and opening your favorite sites."
+
+[commands.google]
+description = "Search using Google."
+
+[commands.youtube]
+description = "Search using YouTube."
+
+[commands.reddit]
+description = "Search using Reddit."
+
+[commands.bing]
+description = "Search using Bing."
+
+[commands.duckduckgo]
+description = "Search using DuckDuckGo."
+
+[commands.github]
+description = "Search repositories, code, issues and more on GitHub."
+
+[commands.wikipedia]
+description = "Search Wikipedia."
+
+[commands.favorites]
+description = "Open or manage your favorite websites."
+
+[commands.add]
+description = "Add a new search engine or favorite."
+
+[commands.remove]
+description = "Remove a search engine or favorite."
+
+[commands.list]
+description = "List available search engines and favorites."
+
+[commands.help]
+description = "Show help information about Quarry commands."
