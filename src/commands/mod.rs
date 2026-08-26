@@ -17,7 +17,7 @@ pub fn run(config: &Config, args: &[String]) {
 
         "list" => list(config),
 
-        "favorites" => favorites(config),
+        "favorites" | "f" => favorites(config, &args[1..]),
 
         _ => search(config, command, &args[1..]),
     }
@@ -27,8 +27,7 @@ fn search(config: &Config, command: &str, args: &[String]) {
     let Some((name, engine)) = config.search_engines
         .iter()
         .find(|(name, engine)| {
-            name.as_str() == command
-                || engine.shortcut == command
+            name.as_str() == command || engine.shortcut == command
         })
     else {
         println!("Unknown command: {}", command);
@@ -43,12 +42,28 @@ fn search(config: &Config, command: &str, args: &[String]) {
     let query = args.join(" ");
     let url = engine.url.replace("{query}", &query);
 
-    Command::new(&config.browser)
-    .arg(&url)
-    .stdout(Stdio::null())
-    .stderr(Stdio::null())
-    .spawn()
-    .expect("Failed to open browser"); 
+    open_browser(config, &url);
+}
+
+fn favorites(config: &Config, args: &[String]) {
+    if args.is_empty() {
+        println!("Favorites:");
+
+        for name in config.favorites.keys() {
+            println!("  {}", name);
+        }
+
+        return;
+    }
+
+    let name = &args[0];
+
+    let Some(url) = config.favorites.get(name) else {
+        println!("Unknown favorite: {}", name);
+        return;
+    };
+
+    open_browser(config, url);
 }
 
 fn list(config: &Config) {
@@ -66,10 +81,11 @@ fn list(config: &Config) {
     }
 }
 
-fn favorites(config: &Config) {
-    println!("Favorites:");
-
-    for (name, url) in &config.favorites {
-        println!("  {:<12} {}", name, url);
-    }
+fn open_browser(config: &Config, url: &str) {
+    Command::new(&config.browser)
+        .arg(url)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("Failed to open browser");
 }

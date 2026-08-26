@@ -159,4 +159,10 @@ Quarry is currently an early-stage project. Core search and configuration functi
 
 ## License
 
-License information has not been specified yet.
+Quarry is free software licensed under the GNU General Public License
+as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+See [LICENSE](LICENSE) for the full license text.
+
+
