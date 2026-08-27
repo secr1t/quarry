@@ -1,8 +1,9 @@
-use std::process::{Command, Stdio};
-
 use crate::core::config::Config;
 
+pub mod engine;
+pub mod favorites;
 pub mod help;
+pub mod list;
 
 pub fn run(config: &Config, args: &[String]) {
     if args.is_empty() {
@@ -15,77 +16,52 @@ pub fn run(config: &Config, args: &[String]) {
     match command.as_str() {
         "help" => help::run(config),
 
-        "list" => list(config),
+        "list" => list::run(config),
 
-        "favorites" | "f" => favorites(config, &args[1..]),
-
-        _ => search(config, command, &args[1..]),
-    }
-}
-
-fn search(config: &Config, command: &str, args: &[String]) {
-    let Some((name, engine)) = config.search_engines
-        .iter()
-        .find(|(name, engine)| {
-            name.as_str() == command || engine.shortcut == command
-        })
-    else {
-        println!("Unknown command: {}", command);
-        return;
-    };
-
-    if args.is_empty() {
-        println!("Query is missing.");
-        return;
-    }
-
-    let query = args.join(" ");
-    let url = engine.url.replace("{query}", &query);
-
-    open_browser(config, &url);
-}
-
-fn favorites(config: &Config, args: &[String]) {
-    if args.is_empty() {
-        println!("Favorites:");
-
-        for name in config.favorites.keys() {
-            println!("  {}", name);
+        "favorites" | "f" => {
+            favorites::run(config, &args[1..]);
         }
 
-        return;
-    }
+        "add" => {
+            handle_add(&args[1..]);
+        }
 
-    let name = &args[0];
+        "remove" => {
+            handle_remove(&args[1..]);
+        }
 
-    let Some(url) = config.favorites.get(name) else {
-        println!("Unknown favorite: {}", name);
-        return;
-    };
-
-    open_browser(config, url);
-}
-
-fn list(config: &Config) {
-    println!("Search engines:");
-
-    for (name, engine) in &config.search_engines {
-        println!("  {:<5} {}", engine.shortcut, name);
-    }
-
-    println!();
-    println!("Favorites:");
-
-    for name in config.favorites.keys() {
-        println!("  {}", name);
+        _ => {
+            engine::run(config, command, &args[1..]);
+        }
     }
 }
 
-fn open_browser(config: &Config, url: &str) {
-    Command::new(&config.browser)
-        .arg(url)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .expect("Failed to open browser");
+fn handle_add(args: &[String]) {
+    if args.is_empty() {
+        println!("Usage: quarry add favorite <name> <url>");
+        return;
+    }
+
+    match args[0].as_str() {
+        "favorite" | "f" => favorites::add(&args[1..]),
+
+        _ => {
+            println!("Unknown add target: {}", args[0]);
+        }
+    }
+}
+
+fn handle_remove(args: &[String]) {
+    if args.is_empty() {
+        println!("Usage: quarry remove favorite <name>");
+        return;
+    }
+
+    match args[0].as_str() {
+        "favorite" | "f" => favorites::remove(&args[1..]),
+
+        _ => {
+            println!("Unknown remove target: {}", args[0]);
+        }
+    }
 }

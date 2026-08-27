@@ -3,7 +3,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 const DEFAULT_CONFIG: &str = include_str!("../../assets/config.toml");
 
@@ -14,17 +14,22 @@ pub struct Config {
     pub favorites: HashMap<String, String>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct SearchEngine {
     pub shortcut: String,
     pub url: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 struct UserConfig {
     browser: Option<String>,
+
     search_engines: Option<HashMap<String, SearchEngine>>,
+
     favorites: Option<HashMap<String, String>>,
+
+    #[serde(default)]
+    removed_favorites: Vec<String>,
 }
 
 pub fn load_config() -> Config {
@@ -34,7 +39,7 @@ pub fn load_config() -> Config {
 
     let path = config_path();
 
-    if let Ok(text) = fs::read_to_string(path) {
+    if let Ok(text) = fs::read_to_string(&path) {
         let user_config: UserConfig =
             toml::from_str(&text)
                 .expect("Failed to parse user config");
@@ -50,12 +55,69 @@ pub fn load_config() -> Config {
         if let Some(favorites) = user_config.favorites {
             config.favorites.extend(favorites);
         }
+
+        for name in user_config.removed_favorites {
+            config.favorites.remove(&name);
+        }
     }
 
     config
 }
 
-fn config_path() -> PathBuf {
+fn load_user_config() -> UserConfig {
+    let path = config_path();
+
+    match fs::read_to_string(&path) {
+        Ok(text) => toml::from_str(&text)
+            .expect("Failed to parse user config"),
+
+        Err(_) => UserConfig::default(),
+    }
+}
+
+fn save_user_config(config: &UserConfig) {
+    let path = config_path();
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .expect("Failed to create config directory");
+    }
+
+    let text = toml::to_string_pretty(config)
+        .expect("Failed to serialize user config");
+
+    fs::write(path, text)
+        .expect("Failed to save user config");
+}
+
+pub fn add_favorite(name: &str, url: &str) {
+    let mut config = load_user_config();
+
+    let favorites = config.favorites
+        .get_or_insert_with(HashMap::new);
+
+    favorites.insert(name.to_string(), url.to_string());
+
+    config.removed_favorites.retain(|item| item != name);
+
+    save_user_config(&config);
+}
+
+pub fn remove_favorite(name: &str) {
+    let mut config = load_user_config();
+
+    if let Some(favorites) = &mut config.favorites {
+        favorites.remove(name);
+    }
+
+    if !config.removed_favorites.contains(&name.to_string()) {
+        config.removed_favorites.push(name.to_string());
+    }
+
+    save_user_config(&config);
+}
+
+pub fn config_path() -> PathBuf {
     let config_home = env::var("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|_| {
