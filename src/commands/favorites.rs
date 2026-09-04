@@ -1,6 +1,6 @@
 use crate::core::config::{self, Config};
 
-use super::engine;
+use super::search;
 
 pub fn run(config: &Config, args: &[String]) {
     if args.is_empty() {
@@ -8,19 +8,39 @@ pub fn run(config: &Config, args: &[String]) {
         return;
     }
 
-    let name = &args[0];
+    match args[0].as_str() {
+        "list" | "ls" => list(config),
 
+        "add" => add(&args[1..]),
+
+        "remove" | "rm" => remove(config, &args[1..]),
+
+        name => open(config, name),
+    }
+}
+
+pub fn list(config: &Config) {
+    println!("Favorites:");
+
+    for (name, url) in &config.favorites {
+        println!("  {:<12} {}", name, url);
+    }
+}
+
+fn open(config: &Config, name: &str) {
     let Some(url) = config.favorites.get(name) else {
         println!("Unknown favorite: {}", name);
         return;
     };
 
-    engine::open_url(config, url);
+    search::open_browser(config, url);
 }
 
-pub fn add(args: &[String]) {
+fn add(args: &[String]) {
     if args.len() < 2 {
-        println!("Usage: quarry add favorite <name> <url>");
+        println!(
+            "Usage: quarry favorites add <name> <url>"
+        );
         return;
     }
 
@@ -32,23 +52,22 @@ pub fn add(args: &[String]) {
     println!("Favorite '{}' added.", name);
 }
 
-pub fn remove(args: &[String]) {
+fn remove(config: &Config, args: &[String]) {
     if args.is_empty() {
-        println!("Usage: quarry remove favorite <name>");
+        println!(
+            "Usage: quarry favorites remove <name>"
+        );
         return;
     }
 
     let name = &args[0];
 
+    if !config.favorites.contains_key(name) {
+        println!("Unknown favorite: {}", name);
+        return;
+    }
+
     config::remove_favorite(name);
 
     println!("Favorite '{}' removed.", name);
-}
-
-fn list(config: &Config) {
-    println!("Favorites:");
-
-    for (name, url) in &config.favorites {
-        println!("  {:<12} {}", name, url);
-    }
 }

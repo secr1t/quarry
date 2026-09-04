@@ -1,49 +1,89 @@
-use std::process::{Command, Stdio};
+use crate::core::config::{self, Config};
 
-use crate::core::config::{Config, SearchEngine};
-
-pub fn run(config: &Config, command: &str, args: &[String]) {
-    let Some(engine) = find_engine(config, command) else {
-        println!("Unknown command: {}", command);
-        return;
-    };
-
-    search(config, engine, args);
-}
-
-fn find_engine<'a>(
-    config: &'a Config,
-    command: &str,
-) -> Option<&'a SearchEngine> {
-    config.search_engines
-        .iter()
-        .find(|(name, engine)| {
-            name.as_str() == command || engine.shortcut == command
-        })
-        .map(|(_, engine)| engine)
-}
-
-fn search(
-    config: &Config,
-    engine: &SearchEngine,
-    args: &[String],
-) {
+pub fn run(config: &Config, args: &[String]) {
     if args.is_empty() {
-        println!("Query is missing.");
+        list(config);
         return;
     }
 
-    let query = args.join(" ");
-    let url = engine.url.replace("{query}", &query);
+    match args[0].as_str() {
+        "list" | "ls" => list(config),
 
-    open_url(config, &url);
+        "info" => {
+            if args.len() < 2 {
+                println!("Usage: quarry engine info <name>");
+                return;
+            }
+
+            info(config, &args[1]);
+        }
+
+        "add" => add(&args[1..]),
+
+        "remove" | "rm" => remove(config, &args[1..]),
+
+        _ => {
+            println!("Unknown engine command: {}", args[0]);
+        }
+    }
 }
 
-pub fn open_url(config: &Config, url: &str) {
-    Command::new(&config.browser)
-        .arg(url)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .expect("Failed to open browser");
+pub fn list(config: &Config) {
+    println!("Search engines:");
+
+    for (name, engine) in &config.search_engines {
+        println!("  {:<5} {}", engine.shortcut, name);
+    }
+}
+
+pub fn info(config: &Config, name: &str) {
+    let Some((name, engine)) = config.search_engines
+        .iter()
+        .find(|(engine_name, engine)| {
+            engine_name.as_str() == name
+                || engine.shortcut == name
+        })
+    else {
+        println!("Unknown search engine: {}", name);
+        return;
+    };
+
+    println!("Name:      {}", name);
+    println!("Shortcut:  {}", engine.shortcut);
+    println!("URL:       {}", engine.url);
+}
+
+fn add(args: &[String]) {
+    if args.len() < 3 {
+        println!(
+            "Usage: quarry engine add <name> <shortcut> <url>"
+        );
+        return;
+    }
+
+    let name = &args[0];
+    let shortcut = &args[1];
+    let url = &args[2];
+
+    config::add_search_engine(name, shortcut, url);
+
+    println!("Search engine '{}' added.", name);
+}
+
+fn remove(config: &Config, args: &[String]) {
+    if args.is_empty() {
+        println!("Usage: quarry engine remove <name>");
+        return;
+    }
+
+    let name = &args[0];
+
+    if !config.search_engines.contains_key(name) {
+        println!("Unknown search engine: {}", name);
+        return;
+    }
+
+    config::remove_search_engine(name);
+
+    println!("Search engine '{}' removed.", name);
 }

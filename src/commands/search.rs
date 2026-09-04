@@ -24,7 +24,7 @@ pub fn run(config: &Config, command: &str, args: &[String]) {
     open_browser(config, &url);
 }
 
-fn open_browser(config: &Config, url: &str) {
+pub fn open_browser(config: &Config, url: &str) {
     Command::new(&config.browser)
         .arg(url)
         .stdout(Stdio::null())

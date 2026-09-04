@@ -1,4 +1,5 @@
-browser = "qutebrowser"
+browser = "xdg-open"
+
 
 [search_engines.google]
 shortcut = "g"

@@ -10,7 +10,11 @@ const DEFAULT_CONFIG: &str = include_str!("../../assets/config.toml");
 #[derive(Deserialize, Clone)]
 pub struct Config {
     pub browser: String,
+
+    #[serde(default)]
     pub search_engines: HashMap<String, SearchEngine>,
+
+    #[serde(default)]
     pub favorites: HashMap<String, String>,
 }
 
@@ -30,19 +34,20 @@ struct UserConfig {
 
     #[serde(default)]
     removed_favorites: Vec<String>,
+
+    #[serde(default)]
+    removed_search_engines: Vec<String>,
 }
 
 pub fn load_config() -> Config {
-    let mut config: Config =
-        toml::from_str(DEFAULT_CONFIG)
-            .expect("Failed to parse default config");
+    let mut config: Config = toml::from_str(DEFAULT_CONFIG)
+        .expect("Failed to parse default config");
 
     let path = config_path();
 
     if let Ok(text) = fs::read_to_string(&path) {
-        let user_config: UserConfig =
-            toml::from_str(&text)
-                .expect("Failed to parse user config");
+        let user_config: UserConfig = toml::from_str(&text)
+            .expect("Failed to parse user config");
 
         if let Some(browser) = user_config.browser {
             config.browser = browser;
@@ -58,6 +63,10 @@ pub fn load_config() -> Config {
 
         for name in user_config.removed_favorites {
             config.favorites.remove(&name);
+        }
+
+        for name in user_config.removed_search_engines {
+            config.search_engines.remove(&name);
         }
     }
 
@@ -110,8 +119,46 @@ pub fn remove_favorite(name: &str) {
         favorites.remove(name);
     }
 
-    if !config.removed_favorites.contains(&name.to_string()) {
+    if !config.removed_favorites.iter().any(|item| item == name) {
         config.removed_favorites.push(name.to_string());
+    }
+
+    save_user_config(&config);
+}
+
+pub fn add_search_engine(
+    name: &str,
+    shortcut: &str,
+    url: &str,
+) {
+    let mut config = load_user_config();
+
+    let engines = config.search_engines
+        .get_or_insert_with(HashMap::new);
+
+    engines.insert(
+        name.to_string(),
+        SearchEngine {
+            shortcut: shortcut.to_string(),
+            url: url.to_string(),
+        },
+    );
+
+    config.removed_search_engines
+        .retain(|item| item != name);
+
+    save_user_config(&config);
+}
+
+pub fn remove_search_engine(name: &str) {
+    let mut config = load_user_config();
+
+    if let Some(engines) = &mut config.search_engines {
+        engines.remove(name);
+    }
+
+    if !config.removed_search_engines.iter().any(|item| item == name) {
+        config.removed_search_engines.push(name.to_string());
     }
 
     save_user_config(&config);
@@ -123,7 +170,7 @@ pub fn config_path() -> PathBuf {
         .unwrap_or_else(|_| {
             PathBuf::from(
                 env::var("HOME")
-                    .expect("HOME environment variable is not set")
+                    .expect("HOME environment variable is not set"),
             )
             .join(".config")
         });
