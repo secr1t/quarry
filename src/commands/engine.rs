@@ -37,13 +37,7 @@ pub fn list(config: &Config) {
 }
 
 pub fn info(config: &Config, name: &str) {
-    let Some((name, engine)) = config.search_engines
-        .iter()
-        .find(|(engine_name, engine)| {
-            engine_name.as_str() == name
-                || engine.shortcut == name
-        })
-    else {
+    let Some((name, engine)) = find_engine(config, name) else {
         println!("Unknown search engine: {}", name);
         return;
     };
@@ -78,12 +72,20 @@ fn remove(config: &Config, args: &[String]) {
 
     let name = &args[0];
 
-    if !config.search_engines.contains_key(name) {
+    let Some((name, _)) = find_engine(config, name) else {
         println!("Unknown search engine: {}", name);
         return;
-    }
+    };
 
     config::remove_search_engine(name);
 
     println!("Search engine '{}' removed.", name);
+}
+
+fn find_engine<'a>(config: &'a Config, name: &str) -> Option<(&'a String, &'a config::SearchEngine)> {
+    config.search_engines
+        .iter()
+        .find(|(engine_name, engine)| {
+            engine_name.as_str() == name || engine.shortcut == name
+        })
 }
