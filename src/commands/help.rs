@@ -16,6 +16,9 @@ struct Help {
 #[derive(Deserialize)]
 struct CommandHelp {
     description: String,
+
+    #[serde(default)]
+    subcommands: HashMap<String, CommandHelp>,
 }
 
 pub fn run(config: &Config) {
@@ -40,14 +43,27 @@ pub fn run(config: &Config) {
     }
 
     println!();
+    print_commands("Commands:", &help.commands, 2);
+}
 
-    println!("Commands:");
+fn print_commands(
+    title: &str,
+    commands: &HashMap<String, CommandHelp>,
+    indent: usize,
+) {
+    println!("{}", title);
 
-    for (name, command) in &help.commands {
+    for (name, command) in commands {
+        let prefix = " ".repeat(indent);
         println!(
-            "  {:<12} {}",
+            "{} {:<24} {}",
+            prefix,
             name,
             command.description
         );
+
+        if !command.subcommands.is_empty() {
+            print_commands("Subcommands:", &command.subcommands, indent + 2);
+        }
     }
 }
